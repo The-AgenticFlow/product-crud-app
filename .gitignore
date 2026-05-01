@@ -1,0 +1,11 @@
+# Claude Code
+.claude/
+
+# Rust
+/target
+**/*.rs.bk
+*.pdb
+
+# Environment
+.env
+.env.local
