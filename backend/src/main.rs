@@ -1,6 +1,18 @@
-use axum::{routing::get, Router};
+//! CRUD Application Backend
+//!
+//! A RESTful API built with Axum framework
+
+mod db;
+mod handlers;
+mod middleware;
+mod models;
+mod routes;
+
+use axum::Router;
 use std::net::SocketAddr;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+use routes::api_routes;
 
 #[tokio::main]
 async fn main() {
@@ -16,8 +28,8 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    // Build application with a basic route
-    let app = Router::new().route("/", get(|| async { "Hello, World!" }));
+    // Build application with API routes
+    let app = Router::new().merge(api_routes());
 
     // Get port from environment or default to 3000
     let port = std::env::var("PORT")
