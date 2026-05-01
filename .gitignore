@@ -1,2 +1,11 @@
 .claude/
 .env.local
+
+# Rust
+target/
+
+# Node
+node_modules/
+
+# Build output
+dist/
