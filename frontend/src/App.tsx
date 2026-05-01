@@ -1,34 +1,30 @@
-import { useState } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import Layout from './components/Layout'
+import HomePage from './pages/HomePage'
+import ProductsPage from './pages/ProductsPage'
 
-interface Product {
-  id: string
-  name: string
-  description: string
-  price: number
-  stock: number
-  category: string
-}
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+})
 
 function App() {
-  const [products] = useState<Product[]>([])
-
   return (
-    <div className="app">
-      <h1>Product CRUD App</h1>
-      <div className="product-list">
-        {products.length === 0 ? (
-          <p>No products yet</p>
-        ) : (
-          products.map(p => (
-            <div key={p.id} className="product">
-              <h2>{p.name}</h2>
-              <p>{p.description}</p>
-              <span>${p.price}</span>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<HomePage />} />
+            <Route path="products" element={<ProductsPage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
   )
 }
 
