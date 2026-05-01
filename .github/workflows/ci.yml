@@ -1,0 +1,135 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    # Only run if backend directory exists
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if backend directory exists
+        id: check-backend
+        run: |
+          if [ -d "backend" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Backend directory not found - skipping backend CI"
+          fi
+
+      - name: Setup Rust
+        if: steps.check-backend.outputs.exists == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache cargo dependencies
+        if: steps.check-backend.outputs.exists == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            backend/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Setup PostgreSQL
+        if: steps.check-backend.outputs.exists == 'true'
+        uses: harmon758/postgresql-action@v1
+        with:
+          postgresql db: test_db
+          postgresql user: test_user
+          postgresql password: test_password
+
+      - name: Build backend
+        if: steps.check-backend.outputs.exists == 'true'
+        working-directory: backend
+        env:
+          DATABASE_URL: postgres://test_user:test_password@localhost:5432/test_db
+        run: cargo build --verbose
+
+      - name: Run backend tests
+        if: steps.check-backend.outputs.exists == 'true'
+        working-directory: backend
+        env:
+          DATABASE_URL: postgres://test_user:test_password@localhost:5432/test_db
+        run: cargo test --verbose
+
+      - name: Run clippy
+        if: steps.check-backend.outputs.exists == 'true'
+        working-directory: backend
+        run: cargo clippy -- -D warnings
+
+      - name: Check formatting
+        if: steps.check-backend.outputs.exists == 'true'
+        working-directory: backend
+        run: cargo fmt --check
+
+  frontend:
+    runs-on: ubuntu-latest
+    # Only run if frontend directory exists
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if frontend directory exists
+        id: check-frontend
+        run: |
+          if [ -d "frontend" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Frontend directory not found - skipping frontend CI"
+          fi
+
+      - name: Setup Node.js
+        if: steps.check-frontend.outputs.exists == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Cache node_modules
+        if: steps.check-frontend.outputs.exists == 'true'
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: Install dependencies
+        if: steps.check-frontend.outputs.exists == 'true'
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        if: steps.check-frontend.outputs.exists == 'true'
+        working-directory: frontend
+        run: npm run build
+
+      - name: Run tests
+        if: steps.check-frontend.outputs.exists == 'true'
+        working-directory: frontend
+        run: npm test -- --passWithNoTests
+
+      - name: Run linting
+        if: steps.check-frontend.outputs.exists == 'true'
+        working-directory: frontend
+        run: npm run lint
