@@ -86,14 +86,14 @@ pub async fn get_product_handler(
 /// Create a new product
 ///
 /// # Arguments
-/// * `Json(request)` - JSON body with product data
 /// * `Extension(pool)` - Database connection pool
+/// * `Json(request)` - JSON body with product data
 ///
 /// # Returns
 /// A 201 Created response with the created product wrapped in {"data": {...}, "message": "..."}
 pub async fn create_product_handler(
-    Json(request): Json<CreateProductRequest>,
     Extension(pool): Extension<PgPool>,
+    Json(request): Json<CreateProductRequest>,
 ) -> Result<(StatusCode, Json<CreatedResponse<Product>>), AppError> {
     // Validate the request
     let errors = request.validate();

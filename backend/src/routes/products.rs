@@ -5,7 +5,7 @@
 use axum::{routing::get, Router};
 use sqlx::PgPool;
 
-use crate::handlers::products::{get_product_handler, list_products_handler};
+use crate::handlers::products::{create_product_handler, get_product_handler, list_products_handler};
 
 /// Creates the product router with database pool
 ///
@@ -16,7 +16,7 @@ use crate::handlers::products::{get_product_handler, list_products_handler};
 /// A Router with product endpoints configured
 pub fn products_routes(pool: PgPool) -> Router {
     Router::new()
-        .route("/products", get(list_products_handler))
+        .route("/products", get(list_products_handler).post(create_product_handler))
         .route("/products/:id", get(get_product_handler))
         .layer(axum::Extension(pool))
 }

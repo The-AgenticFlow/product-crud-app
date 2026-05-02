@@ -270,3 +270,395 @@ async fn test_get_product_with_multiple_products() {
     // Cleanup
     cleanup_test_data(&pool).await;
 }
+
+// ==================== POST /api/products Tests ====================
+
+/// Helper struct for created response
+#[derive(Debug, Deserialize)]
+struct CreatedResponse {
+    data: Product,
+    message: String,
+}
+
+/// Helper struct for validation error response
+#[derive(Debug, Deserialize)]
+struct ValidationErrorResponse {
+    errors: Vec<FieldError>,
+}
+
+#[derive(Debug, Deserialize)]
+struct FieldError {
+    field: String,
+    message: String,
+}
+
+#[tokio::test]
+async fn test_create_product_valid_request() {
+    // Setup
+    let (pool, _config) = create_test_app().await;
+    cleanup_test_data(&pool).await;
+
+    // Create router
+    let app = create_router(pool.clone());
+
+    // Create request with valid product data
+    let product_json = serde_json::json!({
+        "name": "New Product",
+        "description": "A new product description",
+        "price": "29.99",
+        "stock": 50,
+        "category": "Electronics",
+        "image_url": "https://example.com/new-product.jpg"
+    });
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method(Method::POST)
+                .uri("/products")
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_vec(&product_json).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Assert status code is 201 CREATED
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // Parse response body
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let created: CreatedResponse = serde_json::from_slice(&body).unwrap();
+
+    // Assert response structure
+    assert_eq!(created.message, "Product created successfully");
+    assert_eq!(created.data.name, "New Product");
+    assert_eq!(created.data.description, Some("A new product description".to_string()));
+    assert_eq!(created.data.price, rust_decimal::Decimal::new(2999, 2)); // 29.99
+    assert_eq!(created.data.stock, 50);
+    assert_eq!(created.data.category, Some("Electronics".to_string()));
+    assert_eq!(created.data.image_url, Some("https://example.com/new-product.jpg".to_string()));
+
+    // Verify auto-generated fields
+    assert!(!created.data.id.is_nil());
+    assert!(created.data.created_at.timestamp() > 0);
+    assert!(created.data.updated_at.timestamp() > 0);
+
+    // Verify product was actually saved in database
+    let saved_product = sqlx::query_as::<_, Product>(
+        "SELECT id, name, description, price, stock, category, image_url, created_at, updated_at FROM products WHERE id = $1"
+    )
+    .bind(created.data.id)
+    .fetch_one(&pool)
+    .await
+    .expect("Failed to fetch saved product");
+
+    assert_eq!(saved_product.name, "New Product");
+
+    // Cleanup
+    cleanup_test_data(&pool).await;
+}
+
+#[tokio::test]
+async fn test_create_product_missing_required_fields() {
+    // Setup
+    let (pool, _config) = create_test_app().await;
+    cleanup_test_data(&pool).await;
+
+    // Create router
+    let app = create_router(pool.clone());
+
+    // Create request with missing name (required field)
+    let product_json = serde_json::json!({
+        "price": "29.99",
+        "stock": 50
+    });
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method(Method::POST)
+                .uri("/products")
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_vec(&product_json).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Assert status code is 400 BAD REQUEST
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Parse response body
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let error: ValidationErrorResponse = serde_json::from_slice(&body).unwrap();
+
+    // Assert validation error for name field
+    assert!(!error.errors.is_empty());
+    assert!(error.errors.iter().any(|e| e.field == "name"));
+
+    // Cleanup
+    cleanup_test_data(&pool).await;
+}
+
+#[tokio::test]
+async fn test_create_product_empty_name() {
+    // Setup
+    let (pool, _config) = create_test_app().await;
+    cleanup_test_data(&pool).await;
+
+    // Create router
+    let app = create_router(pool.clone());
+
+    // Create request with empty name
+    let product_json = serde_json::json!({
+        "name": "",
+        "price": "29.99",
+        "stock": 50
+    });
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method(Method::POST)
+                .uri("/products")
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_vec(&product_json).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Assert status code is 400 BAD REQUEST
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Parse response body
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let error: ValidationErrorResponse = serde_json::from_slice(&body).unwrap();
+
+    // Assert validation error for name field
+    assert!(!error.errors.is_empty());
+    assert!(error.errors.iter().any(|e| e.field == "name" && e.message.contains("required")));
+
+    // Cleanup
+    cleanup_test_data(&pool).await;
+}
+
+#[tokio::test]
+async fn test_create_product_negative_price() {
+    // Setup
+    let (pool, _config) = create_test_app().await;
+    cleanup_test_data(&pool).await;
+
+    // Create router
+    let app = create_router(pool.clone());
+
+    // Create request with negative price
+    let product_json = serde_json::json!({
+        "name": "Test Product",
+        "price": "-10.00",
+        "stock": 50
+    });
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method(Method::POST)
+                .uri("/products")
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_vec(&product_json).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Assert status code is 400 BAD REQUEST
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Parse response body
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let error: ValidationErrorResponse = serde_json::from_slice(&body).unwrap();
+
+    // Assert validation error for price field
+    assert!(!error.errors.is_empty());
+    assert!(error.errors.iter().any(|e| e.field == "price" && e.message.contains("greater than or equal to 0")));
+
+    // Cleanup
+    cleanup_test_data(&pool).await;
+}
+
+#[tokio::test]
+async fn test_create_product_negative_stock() {
+    // Setup
+    let (pool, _config) = create_test_app().await;
+    cleanup_test_data(&pool).await;
+
+    // Create router
+    let app = create_router(pool.clone());
+
+    // Create request with negative stock
+    let product_json = serde_json::json!({
+        "name": "Test Product",
+        "price": "29.99",
+        "stock": -5
+    });
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method(Method::POST)
+                .uri("/products")
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_vec(&product_json).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Assert status code is 400 BAD REQUEST
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Parse response body
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let error: ValidationErrorResponse = serde_json::from_slice(&body).unwrap();
+
+    // Assert validation error for stock field
+    assert!(!error.errors.is_empty());
+    assert!(error.errors.iter().any(|e| e.field == "stock" && e.message.contains("greater than or equal to 0")));
+
+    // Cleanup
+    cleanup_test_data(&pool).await;
+}
+
+#[tokio::test]
+async fn test_create_product_invalid_url_format() {
+    // Setup
+    let (pool, _config) = create_test_app().await;
+    cleanup_test_data(&pool).await;
+
+    // Create router
+    let app = create_router(pool.clone());
+
+    // Create request with invalid URL format
+    let product_json = serde_json::json!({
+        "name": "Test Product",
+        "price": "29.99",
+        "stock": 50,
+        "image_url": "invalid-url"
+    });
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method(Method::POST)
+                .uri("/products")
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_vec(&product_json).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Assert status code is 400 BAD REQUEST
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Parse response body
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let error: ValidationErrorResponse = serde_json::from_slice(&body).unwrap();
+
+    // Assert validation error for image_url field
+    assert!(!error.errors.is_empty());
+    assert!(error.errors.iter().any(|e| e.field == "image_url" && e.message.contains("http:// or https://")));
+
+    // Cleanup
+    cleanup_test_data(&pool).await;
+}
+
+#[tokio::test]
+async fn test_create_product_name_too_long() {
+    // Setup
+    let (pool, _config) = create_test_app().await;
+    cleanup_test_data(&pool).await;
+
+    // Create router
+    let app = create_router(pool.clone());
+
+    // Create request with name exceeding 255 characters
+    let long_name = "x".repeat(256);
+    let product_json = serde_json::json!({
+        "name": long_name,
+        "price": "29.99",
+        "stock": 50
+    });
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method(Method::POST)
+                .uri("/products")
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_vec(&product_json).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Assert status code is 400 BAD REQUEST
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Parse response body
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let error: ValidationErrorResponse = serde_json::from_slice(&body).unwrap();
+
+    // Assert validation error for name field
+    assert!(!error.errors.is_empty());
+    assert!(error.errors.iter().any(|e| e.field == "name" && e.message.contains("255")));
+
+    // Cleanup
+    cleanup_test_data(&pool).await;
+}
+
+#[tokio::test]
+async fn test_create_product_description_too_long() {
+    // Setup
+    let (pool, _config) = create_test_app().await;
+    cleanup_test_data(&pool).await;
+
+    // Create router
+    let app = create_router(pool.clone());
+
+    // Create request with description exceeding 1000 characters
+    let long_description = "x".repeat(1001);
+    let product_json = serde_json::json!({
+        "name": "Test Product",
+        "description": long_description,
+        "price": "29.99",
+        "stock": 50
+    });
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method(Method::POST)
+                .uri("/products")
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_vec(&product_json).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Assert status code is 400 BAD REQUEST
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Parse response body
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let error: ValidationErrorResponse = serde_json::from_slice(&body).unwrap();
+
+    // Assert validation error for description field
+    assert!(!error.errors.is_empty());
+    assert!(error.errors.iter().any(|e| e.field == "description" && e.message.contains("1000")));
+
+    // Cleanup
+    cleanup_test_data(&pool).await;
+}
