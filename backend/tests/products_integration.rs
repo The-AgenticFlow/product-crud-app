@@ -24,6 +24,7 @@ struct ErrorResponse {
 
 #[derive(Debug, Deserialize)]
 struct ErrorBody {
+    #[allow(dead_code)]
     code: String,
     message: String,
     #[serde(default)]
