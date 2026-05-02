@@ -2,30 +2,12 @@
 //!
 //! A RESTful API built with Axum framework
 
-mod db;
-mod handlers;
-mod middleware;
-mod models;
-mod routes;
-
-#[cfg(feature = "database")]
-mod config;
-
+use backend::config::DatabaseConfig;
+use backend::db::{create_pool, run_migrations};
+use backend::routes::api_routes_with_pool;
 use axum::Router;
 use std::net::SocketAddr;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
-#[cfg(feature = "database")]
-use routes::api_routes_with_pool;
-
-#[cfg(not(feature = "database"))]
-use routes::api_routes;
-
-#[cfg(feature = "database")]
-use crate::config::DatabaseConfig;
-
-#[cfg(feature = "database")]
-use crate::db::{create_pool, run_migrations};
 
 #[tokio::main]
 async fn main() {
