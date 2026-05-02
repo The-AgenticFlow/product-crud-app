@@ -1,9 +1,36 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Trash } from 'lucide-react'
 import { Product } from '../types'
+import ConfirmDialog from '../components/ConfirmDialog'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 
-export default function ProductsPage() {
-  const [products] = useState<Product[]>([])
+interface ProductsPageProps {
+  initialProducts?: Product[]
+}
+
+export default function ProductsPage({ initialProducts = [] }: ProductsPageProps) {
+  const [products] = useState<Product[]>(initialProducts)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const { confirm, dialogProps } = useConfirmDialog()
+
+  const handleDelete = async (product: Product) => {
+    const confirmed = await confirm({
+      title: 'Delete Product',
+      message: `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger'
+    })
+
+    if (confirmed) {
+      setDeletingId(product.id)
+      // Delete operation would happen here
+      // For now, we'll just simulate it
+      console.log('Deleting product:', product.id)
+      setDeletingId(null)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -39,10 +66,20 @@ export default function ProductsPage() {
                       <span>Stock: {product.stock}</span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-gray-900">
-                      ${product.price}
-                    </p>
+                  <div className="flex items-start gap-4">
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-gray-900">
+                        ${product.price}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDelete(product)}
+                      disabled={deletingId === product.id}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label={`Delete ${product.name}`}
+                    >
+                      <Trash className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -50,6 +87,7 @@ export default function ProductsPage() {
           </div>
         )}
       </div>
+      <ConfirmDialog {...dialogProps} />
     </div>
   )
 }

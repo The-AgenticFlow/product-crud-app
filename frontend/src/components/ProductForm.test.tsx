@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, UseMutationResult } from '@tanstack/react-query'
@@ -8,6 +8,31 @@ import { Product, ProductCreate, ProductUpdate } from '../types'
 
 // Mock the hooks
 vi.mock('../hooks/useProducts')
+
+// Helper function to create complete mock mutation results
+const createMockMutationResult = <TData, TError, TVariables>(
+  mutateAsync: ReturnType<typeof vi.fn>,
+  overrides: Partial<UseMutationResult<TData, TError, TVariables>> = {}
+): UseMutationResult<TData, TError, TVariables> => {
+  return {
+    mutate: vi.fn(),
+    mutateAsync,
+    data: undefined,
+    error: null,
+    variables: undefined,
+    isError: false,
+    isIdle: true,
+    isPending: false,
+    isSuccess: false,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    reset: vi.fn(),
+    context: undefined,
+    status: 'idle',
+    ...overrides,
+  } as UseMutationResult<TData, TError, TVariables>
+}
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -32,14 +57,12 @@ describe('ProductForm', () => {
 
   it('renders form in create mode', () => {
     const mockCreateProduct = vi.fn()
-    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue({
-      mutateAsync: mockCreateProduct,
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductCreate>)
-    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue({
-      mutateAsync: vi.fn(),
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductUpdate>)
+    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductCreate>(mockCreateProduct)
+    )
+    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductUpdate>(vi.fn())
+    )
 
     render(<ProductForm mode="create" />, { wrapper: createWrapper() })
 
@@ -54,14 +77,12 @@ describe('ProductForm', () => {
 
   it('renders form in edit mode with initial data', () => {
     const mockUpdateProduct = vi.fn()
-    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue({
-      mutateAsync: vi.fn(),
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductCreate>)
-    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue({
-      mutateAsync: mockUpdateProduct,
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductUpdate>)
+    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductCreate>(vi.fn())
+    )
+    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductUpdate>(mockUpdateProduct)
+    )
 
     const initialData = {
       id: '1',
@@ -84,14 +105,12 @@ describe('ProductForm', () => {
 
   it('displays validation errors for required fields', async () => {
     const mockCreateProduct = vi.fn()
-    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue({
-      mutateAsync: mockCreateProduct,
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductCreate>)
-    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue({
-      mutateAsync: vi.fn(),
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductUpdate>)
+    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductCreate>(mockCreateProduct)
+    )
+    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductUpdate>(vi.fn())
+    )
 
     render(<ProductForm mode="create" />, { wrapper: createWrapper() })
 
@@ -107,14 +126,12 @@ describe('ProductForm', () => {
 
   it('displays validation error for name too long', async () => {
     const mockCreateProduct = vi.fn()
-    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue({
-      mutateAsync: mockCreateProduct,
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductCreate>)
-    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue({
-      mutateAsync: vi.fn(),
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductUpdate>)
+    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductCreate>(mockCreateProduct)
+    )
+    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductUpdate>(vi.fn())
+    )
 
     render(<ProductForm mode="create" />, { wrapper: createWrapper() })
 
@@ -138,14 +155,12 @@ describe('ProductForm', () => {
 
   it('displays validation error for invalid URL', async () => {
     const mockCreateProduct = vi.fn()
-    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue({
-      mutateAsync: mockCreateProduct,
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductCreate>)
-    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue({
-      mutateAsync: vi.fn(),
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductUpdate>)
+    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductCreate>(mockCreateProduct)
+    )
+    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductUpdate>(vi.fn())
+    )
 
     render(<ProductForm mode="create" />, { wrapper: createWrapper() })
 
@@ -172,14 +187,12 @@ describe('ProductForm', () => {
 
   it('calls createProduct mutation on form submission', async () => {
     const mockCreateProduct = vi.fn().mockResolvedValue({ id: '1' })
-    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue({
-      mutateAsync: mockCreateProduct,
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductCreate>)
-    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue({
-      mutateAsync: vi.fn(),
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductUpdate>)
+    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductCreate>(mockCreateProduct)
+    )
+    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductUpdate>(vi.fn())
+    )
 
     render(<ProductForm mode="create" />, { wrapper: createWrapper() })
 
@@ -209,14 +222,12 @@ describe('ProductForm', () => {
 
   it('calls updateProduct mutation on form submission in edit mode', async () => {
     const mockUpdateProduct = vi.fn().mockResolvedValue({ id: '1' })
-    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue({
-      mutateAsync: vi.fn(),
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductCreate>)
-    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue({
-      mutateAsync: mockUpdateProduct,
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductUpdate>)
+    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductCreate>(vi.fn())
+    )
+    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductUpdate>(mockUpdateProduct)
+    )
 
     const initialData = {
       id: '1',
@@ -250,14 +261,12 @@ describe('ProductForm', () => {
 
   it('disables submit button during submission', () => {
     const mockCreateProduct = vi.fn()
-    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue({
-      mutateAsync: mockCreateProduct,
-      isPending: true,
-    } as UseMutationResult<Product, Error, ProductCreate>)
-    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue({
-      mutateAsync: vi.fn(),
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductUpdate>)
+    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductCreate>(mockCreateProduct, { isPending: true })
+    )
+    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductUpdate>(vi.fn())
+    )
 
     render(<ProductForm mode="create" />, { wrapper: createWrapper() })
 
@@ -267,14 +276,12 @@ describe('ProductForm', () => {
 
   it('renders cancel button', () => {
     const mockCreateProduct = vi.fn()
-    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue({
-      mutateAsync: mockCreateProduct,
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductCreate>)
-    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue({
-      mutateAsync: vi.fn(),
-      isPending: false,
-    } as UseMutationResult<Product, Error, ProductUpdate>)
+    vi.mocked(useProductsHook.useCreateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductCreate>(mockCreateProduct)
+    )
+    vi.mocked(useProductsHook.useUpdateProduct).mockReturnValue(
+      createMockMutationResult<Product, Error, ProductUpdate>(vi.fn())
+    )
 
     render(<ProductForm mode="create" />, { wrapper: createWrapper() })
 
