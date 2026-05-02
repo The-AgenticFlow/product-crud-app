@@ -1,4 +1,4 @@
-//! Integration tests for GET /api/products/:id endpoint
+//! Integration tests for product endpoints
 
 use axum::{
     body::Body,
@@ -19,7 +19,18 @@ use tower::ServiceExt;
 /// Helper struct for error responses
 #[derive(Debug, Deserialize)]
 struct ErrorResponse {
-    error: String,
+    error: ErrorBody,
+}
+
+#[derive(Debug, Deserialize)]
+struct ErrorBody {
+    message: String,
+}
+
+/// Helper struct for success responses
+#[derive(Debug, Deserialize)]
+struct SuccessResponse {
+    message: String,
 }
 
 /// Test helper to create a test app
@@ -146,8 +157,8 @@ async fn test_get_product_not_found() {
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
 
-    // Assert error message
-    assert_eq!(error.error, "Product not found");
+    // Assert error message contains "not found"
+    assert!(error.error.message.contains("not found"));
 
     // Cleanup
     cleanup_test_data(&pool).await;
@@ -181,8 +192,8 @@ async fn test_get_product_invalid_uuid_format() {
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
 
-    // Assert error message
-    assert_eq!(error.error, "Invalid UUID format");
+    // Assert error message contains "Invalid UUID"
+    assert!(error.error.message.contains("Invalid UUID"));
 
     // Cleanup
     cleanup_test_data(&pool).await;
@@ -266,6 +277,176 @@ async fn test_get_product_with_multiple_products() {
     let json: Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(json["data"]["id"], product2.id.to_string());
     assert_eq!(json["data"]["name"], "Product 2");
+
+    // Cleanup
+    cleanup_test_data(&pool).await;
+}
+
+// ============================================================================
+// DELETE /api/products/:id tests
+// ============================================================================
+
+#[tokio::test]
+async fn test_delete_product_by_valid_id() {
+    // Setup
+    let (pool, _config) = create_test_app().await;
+    cleanup_test_data(&pool).await;
+
+    // Insert a test product
+    let product = insert_test_product(&pool).await;
+
+    // Create router
+    let app = create_router(pool.clone());
+
+    // Delete the product
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method(Method::DELETE)
+                .uri(format!("/products/{}", product.id))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Assert status code is 200 OK
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Parse response body
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let success: SuccessResponse = serde_json::from_slice(&body).unwrap();
+
+    // Assert success message
+    assert_eq!(success.message, "Product deleted successfully");
+
+    // Verify product no longer exists
+    let product_check = sqlx::query_as::<_, Product>(
+        "SELECT id, name, description, price, stock, category, image_url, created_at, updated_at FROM products WHERE id = $1"
+    )
+    .bind(product.id)
+    .fetch_optional(&pool)
+    .await
+    .expect("Failed to check product");
+
+    assert!(product_check.is_none(), "Product should be deleted");
+
+    // Cleanup
+    cleanup_test_data(&pool).await;
+}
+
+#[tokio::test]
+async fn test_delete_product_not_found() {
+    // Setup
+    let (pool, _config) = create_test_app().await;
+    cleanup_test_data(&pool).await;
+
+    // Create router
+    let app = create_router(pool.clone());
+
+    // Create request with a non-existent UUID
+    let non_existent_uuid = uuid::Uuid::new_v4();
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method(Method::DELETE)
+                .uri(format!("/products/{}", non_existent_uuid))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Assert status code is 404 NOT FOUND
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    // Parse response body
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
+
+    // Assert error message contains "not found"
+    assert!(error.error.message.contains("not found"));
+
+    // Cleanup
+    cleanup_test_data(&pool).await;
+}
+
+#[tokio::test]
+async fn test_delete_product_invalid_uuid_format() {
+    // Setup
+    let (pool, _config) = create_test_app().await;
+    cleanup_test_data(&pool).await;
+
+    // Create router
+    let app = create_router(pool.clone());
+
+    // Create request with an invalid UUID
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method(Method::DELETE)
+                .uri("/products/not-a-valid-uuid")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Assert status code is 400 BAD REQUEST
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Parse response body
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let error: ErrorResponse = serde_json::from_slice(&body).unwrap();
+
+    // Assert error message contains "Invalid UUID"
+    assert!(error.error.message.contains("Invalid UUID"));
+
+    // Cleanup
+    cleanup_test_data(&pool).await;
+}
+
+#[tokio::test]
+async fn test_delete_product_cannot_be_retrieved_after_deletion() {
+    // Setup
+    let (pool, _config) = create_test_app().await;
+    cleanup_test_data(&pool).await;
+
+    // Insert a test product
+    let product = insert_test_product(&pool).await;
+
+    // Create router
+    let app = create_router(pool.clone());
+
+    // Delete the product
+    let delete_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method(Method::DELETE)
+                .uri(format!("/products/{}", product.id))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(delete_response.status(), StatusCode::OK);
+
+    // Try to retrieve the deleted product
+    let get_response = app
+        .oneshot(
+            Request::builder()
+                .method(Method::GET)
+                .uri(format!("/products/{}", product.id))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    // Assert 404 NOT FOUND
+    assert_eq!(get_response.status(), StatusCode::NOT_FOUND);
 
     // Cleanup
     cleanup_test_data(&pool).await;

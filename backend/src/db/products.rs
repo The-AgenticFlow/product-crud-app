@@ -164,6 +164,27 @@ pub async fn get_product_by_id(pool: &PgPool, id: uuid::Uuid) -> Result<Option<P
     Ok(product)
 }
 
+/// Delete a product by ID
+///
+/// # Arguments
+/// * `pool` - Database connection pool
+/// * `id` - UUID of the product to delete
+///
+/// # Returns
+/// `Ok(true)` if the product was deleted, `Ok(false)` if the product was not found
+///
+/// # Errors
+/// Returns an error if the database operation fails
+pub async fn delete_product(pool: &PgPool, id: uuid::Uuid) -> Result<bool, ProductRepositoryError> {
+    let result = sqlx::query("DELETE FROM products WHERE id = $1")
+        .bind(id)
+        .execute(pool)
+        .await
+        .map_err(|e| ProductRepositoryError::DatabaseError(e.to_string()))?;
+
+    Ok(result.rows_affected() > 0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
