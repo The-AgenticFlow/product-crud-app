@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 /// Query parameters for listing products
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[allow(dead_code)]
 pub struct ListProductsQuery {
     /// Page number (1-indexed)
     #[serde(default = "default_page")]
@@ -30,22 +31,27 @@ pub struct ListProductsQuery {
     pub sort_order: String,
 }
 
+#[allow(dead_code)]
 fn default_page() -> u32 {
     1
 }
 
+#[allow(dead_code)]
 fn default_limit() -> u32 {
     20
 }
 
+#[allow(dead_code)]
 fn default_sort_by() -> String {
     "created_at".to_string()
 }
 
+#[allow(dead_code)]
 fn default_sort_order() -> String {
     "desc".to_string()
 }
 
+#[allow(dead_code)]
 impl ListProductsQuery {
     /// Validate query parameters
     ///

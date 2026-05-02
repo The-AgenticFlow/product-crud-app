@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 /// Pagination metadata for API responses
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct Pagination {
     /// Current page number (1-indexed)
     pub page: u32,
@@ -21,6 +22,7 @@ pub struct Pagination {
 }
 
 impl Pagination {
+    #[allow(dead_code)]
     /// Create new pagination metadata
     ///
     /// # Arguments
@@ -45,6 +47,7 @@ impl Pagination {
 
 /// Generic paginated response wrapper
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct PaginatedResponse<T> {
     /// The data items for the current page
     pub data: Vec<T>,
@@ -54,6 +57,7 @@ pub struct PaginatedResponse<T> {
 }
 
 impl<T> PaginatedResponse<T> {
+    #[allow(dead_code)]
     /// Create a new paginated response
     ///
     /// # Arguments
