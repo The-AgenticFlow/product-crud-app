@@ -16,7 +16,7 @@ pub mod query_params;
 
 #[cfg(feature = "database")]
 #[allow(unused_imports)]
-pub use product::{CreateProduct, Product, UpdateProduct};
+pub use product::{CreateProduct, CreateProductRequest, Product, UpdateProduct};
 #[cfg(feature = "database")]
 #[allow(unused_imports)]
 pub use pagination::{PaginatedResponse, Pagination};
