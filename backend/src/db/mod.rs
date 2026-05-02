@@ -1,8 +1,12 @@
 //! Database operations and connection pool management
 //!
-//! This module will contain:
+//! This module contains:
 //! - Database connection pool setup
 //! - Query helpers
 //! - Transaction management
 
-// Placeholder for future database operations
+#[cfg(feature = "database")]
+pub mod pool;
+
+#[cfg(feature = "database")]
+pub use pool::{create_pool, run_migrations};

@@ -1,8 +1,12 @@
 //! Data models for the application
 //!
-//! This module will contain:
-//! - Domain entities (User, Product, etc.)
+//! This module contains:
+//! - Domain entities (Product, etc.)
 //! - DTOs (Data Transfer Objects)
 //! - Database models
 
-// Placeholder for future model definitions
+#[cfg(feature = "database")]
+pub mod product;
+
+#[cfg(feature = "database")]
+pub use product::{CreateProduct, Product, UpdateProduct};
