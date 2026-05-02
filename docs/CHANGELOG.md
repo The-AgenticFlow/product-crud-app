@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Implement complete product form feature with API layer, validation, and routing across 3 segments:. (#42)
 - `ConfirmDialog` component: Modal dialog with portal-based rendering, focus trap, keyboard navigation, and ARIA accessibility. (#43)
 
 ### Changed
