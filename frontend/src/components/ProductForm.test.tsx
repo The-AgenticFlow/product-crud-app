@@ -92,6 +92,8 @@ describe('ProductForm', () => {
       stock: 10,
       category: 'electronics',
       imageUrl: 'https://example.com/image.jpg',
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
     }
 
     render(<ProductForm mode="edit" productId="1" initialData={initialData} />, { wrapper: createWrapper() })
@@ -237,6 +239,8 @@ describe('ProductForm', () => {
       stock: 10,
       category: 'electronics',
       imageUrl: 'https://example.com/image.jpg',
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
     }
 
     render(<ProductForm mode="edit" productId="1" initialData={initialData} />, { wrapper: createWrapper() })

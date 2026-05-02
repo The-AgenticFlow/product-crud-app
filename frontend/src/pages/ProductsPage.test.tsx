@@ -47,7 +47,9 @@ describe('ProductsPage', () => {
         description: 'A test product',
         price: 29.99,
         stock: 10,
-        category: 'Electronics'
+        category: 'Electronics',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z'
       }
     ]
 
@@ -70,7 +72,9 @@ describe('ProductsPage', () => {
         description: 'A test product',
         price: 29.99,
         stock: 10,
-        category: 'Electronics'
+        category: 'Electronics',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z'
       }
     ]
 
@@ -98,7 +102,9 @@ describe('ProductsPage', () => {
         description: 'A test product',
         price: 29.99,
         stock: 10,
-        category: 'Electronics'
+        category: 'Electronics',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z'
       }
     ]
 
@@ -136,7 +142,9 @@ describe('ProductsPage', () => {
         description: 'A test product',
         price: 29.99,
         stock: 10,
-        category: 'Electronics'
+        category: 'Electronics',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z'
       }
     ]
 
