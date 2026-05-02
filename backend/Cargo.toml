@@ -15,6 +15,7 @@ chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
 sqlx = { version = "0.7", features = ["postgres", "runtime-tokio", "tls-rustls", "migrate", "chrono", "uuid", "rust_decimal"], optional = true }
 rust_decimal = { version = "1", features = ["serde"] }
+url = "2"
 tower = "0.5"
 tower-http = { version = "0.5", features = ["util"] }
 http-body-util = "0.1"
