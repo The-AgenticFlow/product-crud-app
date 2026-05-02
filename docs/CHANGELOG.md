@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- This PR implements the complete database layer for the Product CRUD application, including:. (#50)
 - This PR implements the centralized API service layer for the React frontend to communicate with the Rust backend. The implementation includes Axios configuration with interceptors, comprehensive TypeScript types for API communication, and product CRUD service functions ready for React Query integration. (#45)
 - Implement complete product form feature with API layer, validation, and routing across 3 segments:. (#42)
 - `ConfirmDialog` component: Modal dialog with portal-based rendering, focus trap, keyboard navigation, and ARIA accessibility. (#43)
