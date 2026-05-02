@@ -1,0 +1,3 @@
+# Shared artifacts are runtime state, not committed
+*
+!.gitignore
