@@ -129,4 +129,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 ### Security
+- Implements centralized error handling for the Rust backend API (Segment 1 of 3). (#56)
 - Implements GET /api/products endpoint with pagination, filtering, and sorting. (#52)
