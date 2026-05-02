@@ -8,11 +8,20 @@ mod middleware;
 mod models;
 mod routes;
 
+#[cfg(feature = "database")]
+mod config;
+
 use axum::Router;
 use std::net::SocketAddr;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use routes::api_routes;
+
+#[cfg(feature = "database")]
+use crate::config::DatabaseConfig;
+
+#[cfg(feature = "database")]
+use crate::db::{create_pool, run_migrations};
 
 #[tokio::main]
 async fn main() {
@@ -27,6 +36,29 @@ async fn main() {
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
+
+    // Initialize database connection pool if database feature is enabled
+    #[cfg(feature = "database")]
+    {
+        tracing::info!("Initializing database connection pool");
+
+        let db_config = DatabaseConfig::from_env()
+            .expect("Failed to load database configuration");
+
+        let pool = create_pool(&db_config)
+            .await
+            .expect("Failed to create database connection pool");
+
+        tracing::info!("Database connection pool created successfully");
+
+        // Run migrations
+        tracing::info!("Running database migrations");
+        run_migrations(&pool)
+            .await
+            .expect("Failed to run database migrations");
+
+        tracing::info!("Database migrations completed successfully");
+    }
 
     // Build application with API routes
     let app = Router::new().merge(api_routes());
