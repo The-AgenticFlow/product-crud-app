@@ -1,8 +1,11 @@
 //! Data models for the application
 //!
-//! This module will contain:
-//! - Domain entities (User, Product, etc.)
+//! This module contains:
+//! - Domain entities (Product)
 //! - DTOs (Data Transfer Objects)
 //! - Database models
 
-// Placeholder for future model definitions
+pub mod product;
+
+// Re-export commonly used types
+pub use product::{NewProduct, Product};
