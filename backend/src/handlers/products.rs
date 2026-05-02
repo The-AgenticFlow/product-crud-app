@@ -10,7 +10,7 @@ use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::db::{get_product_by_id, list_products, ProductRepositoryError};
+use crate::db::{delete_product, get_product_by_id, list_products, ProductRepositoryError};
 use crate::error::AppError;
 use crate::models::{ListProductsQuery, PaginatedResponse, Product};
 
@@ -18,6 +18,12 @@ use crate::models::{ListProductsQuery, PaginatedResponse, Product};
 #[derive(Debug, Serialize)]
 pub struct DataResponse<T> {
     pub data: T,
+}
+
+/// Success message response wrapper
+#[derive(Debug, Serialize)]
+pub struct SuccessResponse {
+    pub message: String,
 }
 
 /// List products handler
@@ -73,6 +79,37 @@ pub async fn get_product_handler(
 
     // Return the product wrapped in {"data": {...}}
     Ok(Json(DataResponse { data: product }))
+}
+
+/// Delete a product by ID
+///
+/// # Arguments
+/// * `Path(id_str)` - Path parameter containing the product ID (as string)
+/// * `Extension(pool)` - Database connection pool
+///
+/// # Returns
+/// A JSON response with a success message or an error
+pub async fn delete_product_handler(
+    Path(id_str): Path<String>,
+    Extension(pool): Extension<PgPool>,
+) -> Result<Json<SuccessResponse>, AppError> {
+    // Parse the UUID from the path parameter
+    let id = Uuid::parse_str(&id_str)?;
+
+    // Delete the product from the database
+    let deleted = delete_product(&pool, id)
+        .await
+        .map_err(|e| AppError::database("Failed to delete product", e.to_string()))?;
+
+    // Return 404 if product not found
+    if !deleted {
+        return Err(AppError::not_found("Product", id.to_string()));
+    }
+
+    // Return success message
+    Ok(Json(SuccessResponse {
+        message: "Product deleted successfully".to_string(),
+    }))
 }
 
 #[cfg(test)]
