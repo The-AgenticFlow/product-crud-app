@@ -1,37 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider, UseMutationResult } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ProductDetail from './ProductDetail'
 import * as useProductsHook from '../../hooks/useProducts'
 import { Product } from '../../types'
 
 // Mock the hooks
 vi.mock('../../hooks/useProducts')
-
-// Helper function to create complete mock mutation results
-const createMockMutationResult = <TData, TError, TVariables>(
-  overrides: Partial<UseMutationResult<TData, TError, TVariables>> = {}
-): UseMutationResult<TData, TError, TVariables> => {
-  return {
-    mutate: vi.fn(),
-    mutateAsync: vi.fn(),
-    data: undefined,
-    error: null,
-    variables: undefined,
-    isError: false,
-    isIdle: true,
-    isPending: false,
-    isSuccess: false,
-    failureCount: 0,
-    failureReason: null,
-    submittedAt: 0,
-    reset: vi.fn(),
-    context: undefined,
-    status: 'idle',
-    ...overrides,
-  } as UseMutationResult<TData, TError, TVariables>
-}
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -127,7 +103,6 @@ describe('ProductDetail', () => {
   })
 
   it('triggers delete mutation when confirmed', async () => {
-    const mockDeleteProduct = vi.fn().mockResolvedValue(undefined)
     vi.mocked(useProductsHook.useProduct).mockReturnValue({
       data: mockProduct,
       isLoading: false,
@@ -157,9 +132,6 @@ describe('ProductDetail', () => {
   })
 
   it('disables delete button during deletion', () => {
-    // Create a component that simulates the pending state
-    const mockDeleteProduct = vi.fn()
-
     render(<ProductDetail product={mockProduct} />, { wrapper: createWrapper() })
 
     // Find delete button and click it

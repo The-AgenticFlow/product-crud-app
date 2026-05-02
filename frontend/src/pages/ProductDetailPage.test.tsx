@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, UseQueryResult } from '@tanstack/react-query'
 import ProductDetailPage from './ProductDetailPage'
@@ -12,7 +12,7 @@ vi.mock('../hooks/useProducts')
 // Helper function to create complete mock query results
 const createMockQueryResult = <TData, TError>(
   overrides: Partial<UseQueryResult<TData, TError>> = {}
-): UseQueryResult<TData, TError> => {
+) => {
   return {
     data: undefined,
     error: null,
@@ -29,13 +29,12 @@ const createMockQueryResult = <TData, TError>(
     isRefetching: false,
     isLoadingError: false,
     isRefetchError: false,
-    isValidating: false,
     promise: Promise.resolve(null as TData),
     refetch: vi.fn(),
     status: 'success',
     fetchStatus: 'idle',
     ...overrides,
-  } as UseQueryResult<TData, TError>
+  }
 }
 
 const createWrapper = (initialRoute = '/products/1') => {
@@ -62,7 +61,7 @@ describe('ProductDetailPage', () => {
 
   it('renders loading state', () => {
     vi.mocked(useProductsHook.useProduct).mockReturnValue(
-      createMockQueryResult<Product, Error>({ isLoading: true, isPending: true })
+      createMockQueryResult<Product, Error>({ isLoading: true, isPending: true }) as any
     )
 
     render(<ProductDetailPage />, { wrapper: createWrapper() })
@@ -77,7 +76,7 @@ describe('ProductDetailPage', () => {
       createMockQueryResult<Product, Error>({
         isError: true,
         error: new Error('Failed to load product'),
-      })
+      }) as any
     )
 
     render(<ProductDetailPage />, { wrapper: createWrapper() })
@@ -91,7 +90,7 @@ describe('ProductDetailPage', () => {
       createMockQueryResult<Product, Error>({
         isError: true,
         error: new Error('404 Not Found'),
-      })
+      }) as any
     )
 
     render(<ProductDetailPage />, { wrapper: createWrapper() })
@@ -117,7 +116,7 @@ describe('ProductDetailPage', () => {
       createMockQueryResult<Product, Error>({
         data: mockProduct,
         isSuccess: true,
-      })
+      }) as any
     )
 
     render(<ProductDetailPage />, { wrapper: createWrapper() })
@@ -148,7 +147,7 @@ describe('ProductDetailPage', () => {
       createMockQueryResult<Product, Error>({
         data: mockProduct,
         isSuccess: true,
-      })
+      }) as any
     )
 
     render(<ProductDetailPage />, { wrapper: createWrapper() })
@@ -160,7 +159,7 @@ describe('ProductDetailPage', () => {
 
   it('extracts product id from route params', () => {
     vi.mocked(useProductsHook.useProduct).mockReturnValue(
-      createMockQueryResult<Product, Error>({ isLoading: true })
+      createMockQueryResult<Product, Error>({ isLoading: true }) as any
     )
 
     render(<ProductDetailPage />, { wrapper: createWrapper('/products/abc123') })
