@@ -1,5 +1,8 @@
 //! Request handlers for the API
 
+#[cfg(feature = "database")]
+pub mod products;
+
 use axum::Json;
 use serde_json::{json, Value};
 

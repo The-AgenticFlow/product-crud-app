@@ -15,6 +15,10 @@ use axum::Router;
 use std::net::SocketAddr;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+#[cfg(feature = "database")]
+use routes::api_routes_with_pool;
+
+#[cfg(not(feature = "database"))]
 use routes::api_routes;
 
 #[cfg(feature = "database")]
@@ -37,9 +41,9 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    // Initialize database connection pool if database feature is enabled
+    // Initialize database connection pool and build app
     #[cfg(feature = "database")]
-    {
+    let app = {
         tracing::info!("Initializing database connection pool");
 
         let db_config = DatabaseConfig::from_env()
@@ -58,9 +62,11 @@ async fn main() {
             .expect("Failed to run database migrations");
 
         tracing::info!("Database migrations completed successfully");
-    }
 
-    // Build application with API routes
+        Router::new().merge(api_routes_with_pool(pool))
+    };
+
+    #[cfg(not(feature = "database"))]
     let app = Router::new().merge(api_routes());
 
     // Get port from environment or default to 3000
