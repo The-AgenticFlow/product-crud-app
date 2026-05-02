@@ -1,24 +1,39 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { BrowserRouter } from 'react-router-dom'
 
 describe('ProductsPage', () => {
   it('renders products heading', async () => {
     const { default: ProductsPage } = await import('./ProductsPage')
-    render(<ProductsPage />)
+    render(
+      <BrowserRouter>
+        <ProductsPage />
+      </BrowserRouter>
+    )
 
     expect(screen.getByText('Products')).toBeInTheDocument()
   })
 
-  it('renders add product button', async () => {
+  it('renders add product link', async () => {
     const { default: ProductsPage } = await import('./ProductsPage')
-    render(<ProductsPage />)
+    render(
+      <BrowserRouter>
+        <ProductsPage />
+      </BrowserRouter>
+    )
 
-    expect(screen.getByRole('button', { name: /add product/i })).toBeInTheDocument()
+    const addProductLink = screen.getByRole('link', { name: /add product/i })
+    expect(addProductLink).toBeInTheDocument()
+    expect(addProductLink).toHaveAttribute('href', '/products/new')
   })
 
   it('renders empty state when no products', async () => {
     const { default: ProductsPage } = await import('./ProductsPage')
-    render(<ProductsPage />)
+    render(
+      <BrowserRouter>
+        <ProductsPage />
+      </BrowserRouter>
+    )
 
     expect(screen.getByText('No products yet')).toBeInTheDocument()
     expect(screen.getByText('Click "Add Product" to create your first product')).toBeInTheDocument()
@@ -32,12 +47,18 @@ describe('ProductsPage', () => {
         description: 'A test product',
         price: 29.99,
         stock: 10,
-        category: 'Electronics'
+        category: 'Electronics',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z'
       }
     ]
 
     const { default: ProductsPage } = await import('./ProductsPage')
-    render(<ProductsPage initialProducts={mockProducts} />)
+    render(
+      <BrowserRouter>
+        <ProductsPage initialProducts={mockProducts} />
+      </BrowserRouter>
+    )
 
     const deleteButton = screen.getByRole('button', { name: /delete test product/i })
     expect(deleteButton).toBeInTheDocument()
@@ -51,12 +72,18 @@ describe('ProductsPage', () => {
         description: 'A test product',
         price: 29.99,
         stock: 10,
-        category: 'Electronics'
+        category: 'Electronics',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z'
       }
     ]
 
     const { default: ProductsPage } = await import('./ProductsPage')
-    render(<ProductsPage initialProducts={mockProducts} />)
+    render(
+      <BrowserRouter>
+        <ProductsPage initialProducts={mockProducts} />
+      </BrowserRouter>
+    )
 
     const deleteButton = screen.getByRole('button', { name: /delete test product/i })
     fireEvent.click(deleteButton)
@@ -75,14 +102,20 @@ describe('ProductsPage', () => {
         description: 'A test product',
         price: 29.99,
         stock: 10,
-        category: 'Electronics'
+        category: 'Electronics',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z'
       }
     ]
 
     const consoleSpy = vi.spyOn(console, 'log')
 
     const { default: ProductsPage } = await import('./ProductsPage')
-    render(<ProductsPage initialProducts={mockProducts} />)
+    render(
+      <BrowserRouter>
+        <ProductsPage initialProducts={mockProducts} />
+      </BrowserRouter>
+    )
 
     const deleteButton = screen.getByRole('button', { name: /delete test product/i })
     fireEvent.click(deleteButton)
@@ -109,14 +142,20 @@ describe('ProductsPage', () => {
         description: 'A test product',
         price: 29.99,
         stock: 10,
-        category: 'Electronics'
+        category: 'Electronics',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z'
       }
     ]
 
     const consoleSpy = vi.spyOn(console, 'log')
 
     const { default: ProductsPage } = await import('./ProductsPage')
-    render(<ProductsPage initialProducts={mockProducts} />)
+    render(
+      <BrowserRouter>
+        <ProductsPage initialProducts={mockProducts} />
+      </BrowserRouter>
+    )
 
     const deleteButton = screen.getByRole('button', { name: /delete test product/i })
     fireEvent.click(deleteButton)

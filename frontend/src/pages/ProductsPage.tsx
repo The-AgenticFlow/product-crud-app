@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Trash } from 'lucide-react'
 import { Product } from '../types'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -35,9 +36,12 @@ export default function ProductsPage({ initialProducts = [] }: ProductsPageProps
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Products</h1>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+        <Link
+          to="/products/new"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+        >
           Add Product
-        </button>
+        </Link>
       </div>
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         {products.length === 0 ? (
