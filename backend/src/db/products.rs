@@ -3,11 +3,13 @@
 //! This module contains database operations for products
 
 use sqlx::{PgPool, QueryBuilder};
-use crate::models::{ListProductsQuery, Product};
+use crate::models::{ListProductsQuery, Product, UpdateProduct};
 
 /// Error type for product repository operations
 #[derive(Debug)]
 pub enum ProductRepositoryError {
+    /// Product not found
+    NotFound,
     /// Database error
     DatabaseError(String),
     /// Validation error
@@ -17,6 +19,7 @@ pub enum ProductRepositoryError {
 impl std::fmt::Display for ProductRepositoryError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            ProductRepositoryError::NotFound => write!(f, "Product not found"),
             ProductRepositoryError::DatabaseError(msg) => write!(f, "Database error: {}", msg),
             ProductRepositoryError::ValidationError(msg) => write!(f, "Validation error: {}", msg),
         }
@@ -160,6 +163,89 @@ pub async fn get_product_by_id(pool: &PgPool, id: uuid::Uuid) -> Result<Option<P
     .fetch_optional(pool)
     .await
     .map_err(|e| ProductRepositoryError::DatabaseError(e.to_string()))?;
+
+    Ok(product)
+}
+
+/// Update an existing product
+///
+/// # Arguments
+/// * `pool` - Database connection pool
+/// * `id` - UUID of the product to update
+/// * `update` - UpdateProduct struct with fields to update (only Some fields are updated)
+///
+/// # Returns
+/// The updated product if found and successfully updated, or an error
+///
+/// # Errors
+/// Returns NotFound if the product doesn't exist, or DatabaseError for database failures
+#[allow(dead_code)]
+pub async fn update_product(
+    pool: &PgPool,
+    id: uuid::Uuid,
+    update: UpdateProduct,
+) -> Result<Product, ProductRepositoryError> {
+    // First, check if at least one field is provided for update
+    let has_updates = update.name.is_some()
+        || update.description.is_some()
+        || update.price.is_some()
+        || update.stock.is_some()
+        || update.category.is_some()
+        || update.image_url.is_some();
+
+    if !has_updates {
+        // If no fields to update, just return the existing product (or 404 if not found)
+        return get_product_by_id(pool, id)
+            .await?
+            .ok_or(ProductRepositoryError::NotFound);
+    }
+
+    // Build dynamic UPDATE query using QueryBuilder
+    let mut query_builder = QueryBuilder::new("UPDATE products SET updated_at = NOW()");
+
+    // Add fields to update only if they are Some
+    if update.name.is_some() {
+        query_builder.push(", name = ");
+        query_builder.push_bind(update.name);
+    }
+
+    if update.description.is_some() {
+        query_builder.push(", description = ");
+        query_builder.push_bind(update.description);
+    }
+
+    if update.price.is_some() {
+        query_builder.push(", price = ");
+        query_builder.push_bind(update.price);
+    }
+
+    if update.stock.is_some() {
+        query_builder.push(", stock = ");
+        query_builder.push_bind(update.stock);
+    }
+
+    if update.category.is_some() {
+        query_builder.push(", category = ");
+        query_builder.push_bind(update.category);
+    }
+
+    if update.image_url.is_some() {
+        query_builder.push(", image_url = ");
+        query_builder.push_bind(update.image_url);
+    }
+
+    // Add WHERE clause and RETURNING
+    query_builder.push(" WHERE id = ");
+    query_builder.push_bind(id);
+    query_builder.push(" RETURNING id, name, description, price, stock, category, image_url, created_at, updated_at");
+
+    // Execute the query
+    let product = query_builder
+        .build_query_as::<Product>()
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| ProductRepositoryError::DatabaseError(e.to_string()))?
+        .ok_or(ProductRepositoryError::NotFound)?;
 
     Ok(product)
 }

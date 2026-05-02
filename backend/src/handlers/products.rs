@@ -34,6 +34,10 @@ pub async fn list_products_handler(
 ) -> Result<Json<PaginatedResponse<Product>>, AppError> {
     // Call the repository function to get products
     let (products, total) = list_products(&pool, &query).await.map_err(|e| match e {
+        ProductRepositoryError::NotFound => {
+            // This shouldn't happen in list_products, but we handle it anyway
+            AppError::not_found("Product", "unknown")
+        }
         ProductRepositoryError::ValidationError(msg) => {
             AppError::validation_error("query", msg)
         }

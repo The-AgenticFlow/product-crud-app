@@ -123,6 +123,88 @@ pub struct UpdateProduct {
     pub image_url: Option<String>,
 }
 
+/// Request payload for updating an existing product with validation
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdateProductRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub price: Option<Decimal>,
+    pub stock: Option<i32>,
+    pub category: Option<String>,
+    pub image_url: Option<String>,
+}
+
+impl UpdateProductRequest {
+    /// Validate the request data
+    ///
+    /// Only validates fields that are provided (Some). Returns Ok(()) if validation passes,
+    /// or Err(Vec<FieldError>) with validation errors.
+    pub fn validate(&self) -> Result<(), Vec<FieldError>> {
+        let mut errors = Vec::new();
+
+        // Validate name if provided: not empty after trim, max 255 chars
+        if let Some(ref name) = self.name {
+            let name_trimmed = name.trim();
+            if name_trimmed.is_empty() {
+                errors.push(FieldError::new("name", "Product name cannot be empty"));
+            } else if name_trimmed.len() > 255 {
+                errors.push(FieldError::new("name", "Product name must not exceed 255 characters"));
+            }
+        }
+
+        // Validate description if provided: max 1000 chars
+        if let Some(ref desc) = self.description {
+            if desc.len() > 1000 {
+                errors.push(FieldError::new("description", "Description must not exceed 1000 characters"));
+            }
+        }
+
+        // Validate price if provided: must be >= 0
+        if let Some(price) = self.price {
+            if price < Decimal::ZERO {
+                errors.push(FieldError::new("price", "Price must be non-negative"));
+            }
+        }
+
+        // Validate stock if provided: must be >= 0
+        if let Some(stock) = self.stock {
+            if stock < 0 {
+                errors.push(FieldError::new("stock", "Stock must be non-negative"));
+            }
+        }
+
+        // Validate image_url if provided: valid URL format (if not empty string)
+        if let Some(ref url_str) = self.image_url {
+            if !url_str.is_empty() {
+                // Only validate if URL string is not empty
+                if Url::parse(url_str).is_err() {
+                    errors.push(FieldError::new("image_url", "Invalid URL format"));
+                }
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
+/// Convert UpdateProductRequest to UpdateProduct
+impl From<UpdateProductRequest> for UpdateProduct {
+    fn from(req: UpdateProductRequest) -> Self {
+        Self {
+            name: req.name,
+            description: req.description,
+            price: req.price,
+            stock: req.stock,
+            category: req.category,
+            image_url: req.image_url,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -349,5 +431,254 @@ mod tests {
         assert_eq!(create_product.stock, 50);
         assert_eq!(create_product.category, Some("Test".to_string()));
         assert_eq!(create_product.image_url, Some("https://example.com/image.jpg".to_string()));
+    }
+
+    // Tests for UpdateProductRequest
+
+    #[test]
+    fn test_update_product_request_validation_all_none() {
+        let request = UpdateProductRequest {
+            name: None,
+            description: None,
+            price: None,
+            stock: None,
+            category: None,
+            image_url: None,
+        };
+
+        // Should pass validation with all fields as None (partial update with no changes)
+        assert!(request.validate().is_ok());
+    }
+
+    #[test]
+    fn test_update_product_request_validation_single_field_name() {
+        let request = UpdateProductRequest {
+            name: Some("Updated Name".to_string()),
+            description: None,
+            price: None,
+            stock: None,
+            category: None,
+            image_url: None,
+        };
+
+        assert!(request.validate().is_ok());
+    }
+
+    #[test]
+    fn test_update_product_request_validation_multiple_fields() {
+        let request = UpdateProductRequest {
+            name: Some("Updated Name".to_string()),
+            description: Some("Updated description".to_string()),
+            price: Some(Decimal::new(2999, 2)),
+            stock: Some(200),
+            category: None,
+            image_url: Some("https://example.com/new.jpg".to_string()),
+        };
+
+        assert!(request.validate().is_ok());
+    }
+
+    #[test]
+    fn test_update_product_request_validation_empty_name() {
+        let request = UpdateProductRequest {
+            name: Some("   ".to_string()), // Empty/whitespace name
+            description: None,
+            price: None,
+            stock: None,
+            category: None,
+            image_url: None,
+        };
+
+        let result = request.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].field, "name");
+        assert_eq!(errors[0].message, "Product name cannot be empty");
+    }
+
+    #[test]
+    fn test_update_product_request_validation_name_too_long() {
+        let long_name = "a".repeat(256);
+        let request = UpdateProductRequest {
+            name: Some(long_name),
+            description: None,
+            price: None,
+            stock: None,
+            category: None,
+            image_url: None,
+        };
+
+        let result = request.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].field, "name");
+        assert!(errors[0].message.contains("255 characters"));
+    }
+
+    #[test]
+    fn test_update_product_request_validation_description_too_long() {
+        let long_desc = "a".repeat(1001);
+        let request = UpdateProductRequest {
+            name: None,
+            description: Some(long_desc),
+            price: None,
+            stock: None,
+            category: None,
+            image_url: None,
+        };
+
+        let result = request.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].field, "description");
+        assert!(errors[0].message.contains("1000 characters"));
+    }
+
+    #[test]
+    fn test_update_product_request_validation_negative_price() {
+        let request = UpdateProductRequest {
+            name: None,
+            description: None,
+            price: Some(Decimal::new(-100, 0)), // -1.00
+            stock: None,
+            category: None,
+            image_url: None,
+        };
+
+        let result = request.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].field, "price");
+        assert!(errors[0].message.contains("non-negative"));
+    }
+
+    #[test]
+    fn test_update_product_request_validation_negative_stock() {
+        let request = UpdateProductRequest {
+            name: None,
+            description: None,
+            price: None,
+            stock: Some(-5),
+            category: None,
+            image_url: None,
+        };
+
+        let result = request.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].field, "stock");
+        assert!(errors[0].message.contains("non-negative"));
+    }
+
+    #[test]
+    fn test_update_product_request_validation_invalid_url() {
+        let request = UpdateProductRequest {
+            name: None,
+            description: None,
+            price: None,
+            stock: None,
+            category: None,
+            image_url: Some("not-a-valid-url".to_string()),
+        };
+
+        let result = request.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].field, "image_url");
+        assert!(errors[0].message.contains("Invalid URL format"));
+    }
+
+    #[test]
+    fn test_update_product_request_validation_empty_url_allowed() {
+        let request = UpdateProductRequest {
+            name: None,
+            description: None,
+            price: None,
+            stock: None,
+            category: None,
+            image_url: Some("".to_string()), // Empty string should be allowed
+        };
+
+        assert!(request.validate().is_ok());
+    }
+
+    #[test]
+    fn test_update_product_request_validation_none_fields_not_validated() {
+        // Test that None fields don't trigger validation
+        let request = UpdateProductRequest {
+            name: None,            // Not validated
+            description: None,     // Not validated
+            price: None,           // Not validated
+            stock: None,           // Not validated
+            category: None,
+            image_url: None,       // Not validated
+        };
+
+        assert!(request.validate().is_ok());
+    }
+
+    #[test]
+    fn test_update_product_request_validation_multiple_errors() {
+        let request = UpdateProductRequest {
+            name: Some("".to_string()),
+            description: Some("a".repeat(1001)),
+            price: Some(Decimal::new(-100, 0)),
+            stock: Some(-5),
+            category: None,
+            image_url: Some("invalid-url".to_string()),
+        };
+
+        let result = request.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 5); // All provided fields have errors
+    }
+
+    #[test]
+    fn test_update_product_request_to_update_product_conversion() {
+        let request = UpdateProductRequest {
+            name: Some("Updated Product".to_string()),
+            description: Some("An updated description".to_string()),
+            price: Some(Decimal::new(2999, 2)),
+            stock: Some(75),
+            category: Some("Updated Category".to_string()),
+            image_url: Some("https://example.com/updated.jpg".to_string()),
+        };
+
+        let update_product: UpdateProduct = request.into();
+
+        assert_eq!(update_product.name, Some("Updated Product".to_string()));
+        assert_eq!(update_product.description, Some("An updated description".to_string()));
+        assert_eq!(update_product.price, Some(Decimal::new(2999, 2)));
+        assert_eq!(update_product.stock, Some(75));
+        assert_eq!(update_product.category, Some("Updated Category".to_string()));
+        assert_eq!(update_product.image_url, Some("https://example.com/updated.jpg".to_string()));
+    }
+
+    #[test]
+    fn test_update_product_request_partial_conversion() {
+        let request = UpdateProductRequest {
+            name: Some("Updated Name Only".to_string()),
+            description: None,
+            price: None,
+            stock: None,
+            category: None,
+            image_url: None,
+        };
+
+        let update_product: UpdateProduct = request.into();
+
+        assert_eq!(update_product.name, Some("Updated Name Only".to_string()));
+        assert_eq!(update_product.description, None);
+        assert_eq!(update_product.price, None);
+        assert_eq!(update_product.stock, None);
+        assert_eq!(update_product.category, None);
+        assert_eq!(update_product.image_url, None);
     }
 }
