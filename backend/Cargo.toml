@@ -17,5 +17,5 @@ sqlx = { version = "0.7", features = ["postgres", "runtime-tokio", "tls-rustls",
 rust_decimal = { version = "1", features = ["serde"] }
 
 [features]
-default = []
+default = ["database"]
 database = ["sqlx"]
