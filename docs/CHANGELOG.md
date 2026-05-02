@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `ConfirmDialog` component: Modal dialog with portal-based rendering, focus trap, keyboard navigation, and ARIA accessibility. (#43)
 
 ### Changed
 - This PR sets up the React frontend project foundation for the CRUD application with all necessary dependencies, configuration, and structure:. (#40)
