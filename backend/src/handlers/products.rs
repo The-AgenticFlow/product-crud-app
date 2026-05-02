@@ -90,14 +90,14 @@ pub async fn get_product_handler(
 /// A JSON response with the updated product wrapped in {"data": {...}} or an error
 pub async fn update_product_handler(
     Path(id_str): Path<String>,
-    Json(request): Json<UpdateProductRequest>,
     Extension(pool): Extension<PgPool>,
+    Json(request): Json<UpdateProductRequest>,
 ) -> Result<Json<DataResponse<Product>>, AppError> {
     // Parse the UUID from the path parameter
     let id = Uuid::parse_str(&id_str)?;
 
     // Validate the request
-    request.validate().map_err(|errors| AppError::validation(errors))?;
+    request.validate().map_err(AppError::validation)?;
 
     // Convert request to UpdateProduct
     let update: UpdateProduct = request.into();

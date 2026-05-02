@@ -18,6 +18,6 @@ pub fn products_routes(pool: PgPool) -> Router {
     Router::new()
         .route("/products", get(list_products_handler))
         .route("/products/:id", get(get_product_handler))
-        .route("/products/:id", axum::routing::put(update_product_handler))
+        .route("/products/:id", put(update_product_handler))
         .layer(axum::Extension(pool))
 }
