@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- This PR adds a complete product detail page feature including:. (#60)
 - Implement request validation layer for POST /api/products endpoint with comprehensive field validation and unit tests. (#58)
 - Feat: implement GET /api/products/:id endpoint. (#54)
 - This PR implements the complete database layer for the Product CRUD application, including:. (#50)
