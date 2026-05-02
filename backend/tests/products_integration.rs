@@ -86,7 +86,7 @@ async fn test_get_product_by_valid_id() {
         .oneshot(
             Request::builder()
                 .method(Method::GET)
-                .uri(&format!("/products/{}", product.id))
+                .uri(format!("/products/{}", product.id))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -132,7 +132,7 @@ async fn test_get_product_not_found() {
         .oneshot(
             Request::builder()
                 .method(Method::GET)
-                .uri(&format!("/products/{}", non_existent_uuid))
+                .uri(format!("/products/{}", non_existent_uuid))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -236,7 +236,7 @@ async fn test_get_product_with_multiple_products() {
         .oneshot(
             Request::builder()
                 .method(Method::GET)
-                .uri(&format!("/products/{}", product1.id))
+                .uri(format!("/products/{}", product1.id))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -254,7 +254,7 @@ async fn test_get_product_with_multiple_products() {
         .oneshot(
             Request::builder()
                 .method(Method::GET)
-                .uri(&format!("/products/{}", product2.id))
+                .uri(format!("/products/{}", product2.id))
                 .body(Body::empty())
                 .unwrap(),
         )
