@@ -41,7 +41,7 @@ describe('App', () => {
     )
 
     expect(screen.getByRole('heading', { name: /products/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /add product/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /add product/i })).toBeInTheDocument()
     expect(screen.getByText('No products yet')).toBeInTheDocument()
   })
 
