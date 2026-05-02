@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactElement } from 'react'
+import { ReactNode } from 'react'
 import { useProducts, useDeleteProduct } from './useProducts'
 import { productService } from '../services/productService'
 
@@ -21,7 +21,7 @@ const createWrapper = () => {
     },
   })
 
-  return ({ children }: { children: ReactElement }) => (
+  return ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 }
