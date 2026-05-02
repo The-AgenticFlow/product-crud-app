@@ -1,13 +1,41 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, UseQueryResult } from '@tanstack/react-query'
 import ProductDetail from './ProductDetail'
 import * as useProductsHook from '../../hooks/useProducts'
 import { Product } from '../../types'
 
 // Mock the hooks
 vi.mock('../../hooks/useProducts')
+
+// Helper function to create complete mock query results
+const createMockQueryResult = (
+  overrides: Partial<UseQueryResult<Product, Error>> = {}
+): UseQueryResult<Product, Error> => {
+  return {
+    data: undefined,
+    error: null,
+    isError: false,
+    isPending: false,
+    isLoading: false,
+    isFetching: false,
+    isSuccess: true,
+    dataUpdatedAt: 0,
+    errorUpdatedAt: 0,
+    failureCount: 0,
+    failureReason: null,
+    errorUpdateCount: 0,
+    isRefetching: false,
+    isLoadingError: false,
+    isRefetchError: false,
+    promise: Promise.resolve(null as unknown as Product),
+    refetch: vi.fn(),
+    status: 'success',
+    fetchStatus: 'idle',
+    ...overrides,
+  } as UseQueryResult<Product, Error>
+}
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -41,12 +69,9 @@ describe('ProductDetail', () => {
   })
 
   it('displays product info', () => {
-    vi.mocked(useProductsHook.useProduct).mockReturnValue({
-      data: mockProduct,
-      isLoading: false,
-      isError: false,
-      error: null,
-    } as any)
+    vi.mocked(useProductsHook.useProduct).mockReturnValue(
+      createMockQueryResult({ data: mockProduct, isLoading: false })
+    )
 
     render(<ProductDetail product={mockProduct} />, { wrapper: createWrapper() })
 
@@ -103,12 +128,9 @@ describe('ProductDetail', () => {
   })
 
   it('triggers delete mutation when confirmed', async () => {
-    vi.mocked(useProductsHook.useProduct).mockReturnValue({
-      data: mockProduct,
-      isLoading: false,
-      isError: false,
-      error: null,
-    } as any)
+    vi.mocked(useProductsHook.useProduct).mockReturnValue(
+      createMockQueryResult({ data: mockProduct, isLoading: false })
+    )
 
     // Need to mock the useMutation hook for this test
     // The component uses useMutation directly, so we need a different approach
