@@ -16,4 +16,8 @@ export const productService = {
     const response = await api.get<Product>(`/products/${id}`)
     return response.data
   },
+
+  async deleteProduct(id: string): Promise<void> {
+    await api.delete(`/products/${id}`)
+  },
 }
