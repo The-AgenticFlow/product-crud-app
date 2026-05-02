@@ -140,6 +140,30 @@ pub async fn count_products(
     Ok(count)
 }
 
+/// Get a single product by ID
+///
+/// # Arguments
+/// * `pool` - Database connection pool
+/// * `id` - UUID of the product to fetch
+///
+/// # Returns
+/// The product if found, or None if not found
+///
+/// # Errors
+/// Returns an error if the database operation fails
+#[allow(dead_code)]
+pub async fn get_product_by_id(pool: &PgPool, id: uuid::Uuid) -> Result<Option<Product>, ProductRepositoryError> {
+    let product = sqlx::query_as::<_, Product>(
+        "SELECT id, name, description, price, stock, category, image_url, created_at, updated_at FROM products WHERE id = $1"
+    )
+    .bind(id)
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| ProductRepositoryError::DatabaseError(e.to_string()))?;
+
+    Ok(product)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
