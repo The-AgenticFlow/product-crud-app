@@ -6,6 +6,7 @@ use std::env;
 
 /// Database configuration loaded from environment variables
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct DatabaseConfig {
     pub host: String,
     pub port: u16,
@@ -14,6 +15,7 @@ pub struct DatabaseConfig {
     pub password: String,
 }
 
+#[allow(dead_code)]
 impl DatabaseConfig {
     /// Load database configuration from environment variables
     ///
