@@ -10,6 +10,7 @@ mod models;
 mod routes;
 
 use axum::Router;
+#[allow(unused_imports)]
 use db::DbPool;
 use std::net::SocketAddr;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};

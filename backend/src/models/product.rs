@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 /// Product entity representing a product in the database
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[allow(dead_code)]
 pub struct Product {
     pub id: Uuid,
     pub name: String,
@@ -27,6 +28,7 @@ pub struct Product {
 /// This struct omits id and timestamps as they are automatically generated
 /// by the database
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct NewProduct {
     pub name: String,
     pub description: Option<String>,

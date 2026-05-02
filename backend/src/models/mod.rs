@@ -8,4 +8,5 @@
 pub mod product;
 
 // Re-export commonly used types
+#[allow(unused_imports)]
 pub use product::{NewProduct, Product};
