@@ -5,6 +5,9 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
+use url::Url;
+
+use crate::error::FieldError;
 
 /// Product entity representing a product in the database
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -31,6 +34,81 @@ pub struct CreateProduct {
     pub stock: i32,
     pub category: Option<String>,
     pub image_url: Option<String>,
+}
+
+/// Request payload for creating a new product with validation
+#[derive(Debug, Clone, Deserialize)]
+pub struct CreateProductRequest {
+    pub name: String,
+    pub description: Option<String>,
+    pub price: Decimal,
+    pub stock: i32,
+    pub category: Option<String>,
+    pub image_url: Option<String>,
+}
+
+impl CreateProductRequest {
+    /// Validate the request data
+    ///
+    /// Returns Ok(()) if validation passes, or Err(Vec<FieldError>) with validation errors
+    pub fn validate(&self) -> Result<(), Vec<FieldError>> {
+        let mut errors = Vec::new();
+
+        // Validate name: required, max 255 chars, not empty
+        let name_trimmed = self.name.trim();
+        if name_trimmed.is_empty() {
+            errors.push(FieldError::new("name", "Product name is required"));
+        } else if name_trimmed.len() > 255 {
+            errors.push(FieldError::new("name", "Product name must not exceed 255 characters"));
+        }
+
+        // Validate description: optional, max 1000 chars
+        if let Some(ref desc) = self.description {
+            if desc.len() > 1000 {
+                errors.push(FieldError::new("description", "Description must not exceed 1000 characters"));
+            }
+        }
+
+        // Validate price: required, must be >= 0
+        if self.price < Decimal::ZERO {
+            errors.push(FieldError::new("price", "Price must be non-negative"));
+        }
+
+        // Validate stock: required, must be >= 0
+        if self.stock < 0 {
+            errors.push(FieldError::new("stock", "Stock must be non-negative"));
+        }
+
+        // Validate image_url: optional, valid URL format
+        if let Some(ref url_str) = self.image_url {
+            if !url_str.is_empty() {
+                // Only validate if URL string is not empty
+                if Url::parse(url_str).is_err() {
+                    errors.push(FieldError::new("image_url", "Invalid URL format"));
+                }
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
+/// Convert CreateProductRequest to CreateProduct
+impl From<CreateProductRequest> for CreateProduct {
+    fn from(req: CreateProductRequest) -> Self {
+        Self {
+            name: req.name,
+            description: req.description,
+            price: req.price,
+            stock: req.stock,
+            category: req.category,
+            image_url: req.image_url,
+        }
+    }
 }
 
 /// Data for updating an existing product
@@ -88,5 +166,188 @@ mod tests {
 
         assert_eq!(create_product.name, "New Product");
         assert_eq!(create_product.stock, 50);
+    }
+
+    #[test]
+    fn test_create_product_request_validation_valid() {
+        let request = CreateProductRequest {
+            name: "Valid Product".to_string(),
+            description: Some("A valid product description".to_string()),
+            price: Decimal::new(1999, 2), // 19.99
+            stock: 100,
+            category: Some("Electronics".to_string()),
+            image_url: Some("https://example.com/image.jpg".to_string()),
+        };
+
+        assert!(request.validate().is_ok());
+    }
+
+    #[test]
+    fn test_create_product_request_validation_missing_name() {
+        let request = CreateProductRequest {
+            name: "   ".to_string(), // Empty/whitespace name
+            description: None,
+            price: Decimal::new(1999, 2),
+            stock: 100,
+            category: None,
+            image_url: None,
+        };
+
+        let result = request.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].field, "name");
+        assert_eq!(errors[0].message, "Product name is required");
+    }
+
+    #[test]
+    fn test_create_product_request_validation_name_too_long() {
+        let long_name = "a".repeat(256);
+        let request = CreateProductRequest {
+            name: long_name,
+            description: None,
+            price: Decimal::new(1999, 2),
+            stock: 100,
+            category: None,
+            image_url: None,
+        };
+
+        let result = request.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].field, "name");
+        assert!(errors[0].message.contains("255 characters"));
+    }
+
+    #[test]
+    fn test_create_product_request_validation_description_too_long() {
+        let long_desc = "a".repeat(1001);
+        let request = CreateProductRequest {
+            name: "Test Product".to_string(),
+            description: Some(long_desc),
+            price: Decimal::new(1999, 2),
+            stock: 100,
+            category: None,
+            image_url: None,
+        };
+
+        let result = request.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].field, "description");
+        assert!(errors[0].message.contains("1000 characters"));
+    }
+
+    #[test]
+    fn test_create_product_request_validation_negative_price() {
+        let request = CreateProductRequest {
+            name: "Test Product".to_string(),
+            description: None,
+            price: Decimal::new(-100, 0), // -1.00
+            stock: 100,
+            category: None,
+            image_url: None,
+        };
+
+        let result = request.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].field, "price");
+        assert!(errors[0].message.contains("non-negative"));
+    }
+
+    #[test]
+    fn test_create_product_request_validation_negative_stock() {
+        let request = CreateProductRequest {
+            name: "Test Product".to_string(),
+            description: None,
+            price: Decimal::new(1999, 2),
+            stock: -5,
+            category: None,
+            image_url: None,
+        };
+
+        let result = request.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].field, "stock");
+        assert!(errors[0].message.contains("non-negative"));
+    }
+
+    #[test]
+    fn test_create_product_request_validation_invalid_url() {
+        let request = CreateProductRequest {
+            name: "Test Product".to_string(),
+            description: None,
+            price: Decimal::new(1999, 2),
+            stock: 100,
+            category: None,
+            image_url: Some("not-a-valid-url".to_string()),
+        };
+
+        let result = request.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].field, "image_url");
+        assert!(errors[0].message.contains("Invalid URL format"));
+    }
+
+    #[test]
+    fn test_create_product_request_validation_optional_fields_none() {
+        let request = CreateProductRequest {
+            name: "Test Product".to_string(),
+            description: None,
+            price: Decimal::ZERO,
+            stock: 0,
+            category: None,
+            image_url: None,
+        };
+
+        // Should pass validation with all optional fields as None
+        assert!(request.validate().is_ok());
+    }
+
+    #[test]
+    fn test_create_product_request_validation_multiple_errors() {
+        let request = CreateProductRequest {
+            name: "".to_string(),
+            description: Some("a".repeat(1001)),
+            price: Decimal::new(-100, 0),
+            stock: -5,
+            category: None,
+            image_url: Some("invalid-url".to_string()),
+        };
+
+        let result = request.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 5); // All fields have errors
+    }
+
+    #[test]
+    fn test_create_product_request_to_create_product_conversion() {
+        let request = CreateProductRequest {
+            name: "Test Product".to_string(),
+            description: Some("A test".to_string()),
+            price: Decimal::new(1999, 2),
+            stock: 50,
+            category: Some("Test".to_string()),
+            image_url: Some("https://example.com/image.jpg".to_string()),
+        };
+
+        let create_product: CreateProduct = request.into();
+
+        assert_eq!(create_product.name, "Test Product");
+        assert_eq!(create_product.description, Some("A test".to_string()));
+        assert_eq!(create_product.price, Decimal::new(1999, 2));
+        assert_eq!(create_product.stock, 50);
+        assert_eq!(create_product.category, Some("Test".to_string()));
+        assert_eq!(create_product.image_url, Some("https://example.com/image.jpg".to_string()));
     }
 }
