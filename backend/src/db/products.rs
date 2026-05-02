@@ -3,7 +3,7 @@
 //! This module contains database operations for products
 
 use sqlx::{PgPool, QueryBuilder};
-use crate::models::{ListProductsQuery, Product};
+use crate::models::{CreateProduct, ListProductsQuery, Product};
 
 /// Error type for product repository operations
 #[derive(Debug)]
@@ -162,6 +162,39 @@ pub async fn get_product_by_id(pool: &PgPool, id: uuid::Uuid) -> Result<Option<P
     .map_err(|e| ProductRepositoryError::DatabaseError(e.to_string()))?;
 
     Ok(product)
+}
+
+/// Create a new product
+///
+/// # Arguments
+/// * `pool` - Database connection pool
+/// * `product` - Product data to create
+///
+/// # Returns
+/// The created product with auto-generated fields (id, created_at, updated_at)
+///
+/// # Errors
+/// Returns an error if the database operation fails
+#[allow(dead_code)]
+pub async fn create_product(pool: &PgPool, product: CreateProduct) -> Result<Product, ProductRepositoryError> {
+    let created = sqlx::query_as::<_, Product>(
+        r#"
+        INSERT INTO products (name, description, price, stock, category, image_url)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, name, description, price, stock, category, image_url, created_at, updated_at
+        "#
+    )
+    .bind(&product.name)
+    .bind(&product.description)
+    .bind(product.price)
+    .bind(product.stock)
+    .bind(&product.category)
+    .bind(&product.image_url)
+    .fetch_one(pool)
+    .await
+    .map_err(|e| ProductRepositoryError::DatabaseError(e.to_string()))?;
+
+    Ok(created)
 }
 
 #[cfg(test)]

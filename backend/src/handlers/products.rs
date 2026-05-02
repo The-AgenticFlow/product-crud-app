@@ -4,20 +4,28 @@
 
 use axum::{
     extract::{Extension, Path, Query},
+    http::StatusCode,
     Json,
 };
 use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::db::{get_product_by_id, list_products, ProductRepositoryError};
+use crate::db::{create_product, get_product_by_id, list_products, ProductRepositoryError};
 use crate::error::AppError;
-use crate::models::{ListProductsQuery, PaginatedResponse, Product};
+use crate::models::{CreateProductRequest, ListProductsQuery, PaginatedResponse, Product};
 
 /// Single item response wrapper
 #[derive(Debug, Serialize)]
 pub struct DataResponse<T> {
     pub data: T,
+}
+
+/// Response wrapper for created resources with a message
+#[derive(Debug, Serialize)]
+pub struct CreatedResponse<T> {
+    pub data: T,
+    pub message: String,
 }
 
 /// List products handler
@@ -75,6 +83,42 @@ pub async fn get_product_handler(
     Ok(Json(DataResponse { data: product }))
 }
 
+/// Create a new product
+///
+/// # Arguments
+/// * `Json(request)` - JSON body with product data
+/// * `Extension(pool)` - Database connection pool
+///
+/// # Returns
+/// A 201 Created response with the created product wrapped in {"data": {...}, "message": "..."}
+pub async fn create_product_handler(
+    Json(request): Json<CreateProductRequest>,
+    Extension(pool): Extension<PgPool>,
+) -> Result<(StatusCode, Json<CreatedResponse<Product>>), AppError> {
+    // Validate the request
+    let errors = request.validate();
+    if !errors.is_empty() {
+        return Err(AppError::validation(errors));
+    }
+
+    // Convert request to CreateProduct model
+    let product_data = request.into_create_product();
+
+    // Insert the product into the database
+    let product = create_product(&pool, product_data)
+        .await
+        .map_err(|e| AppError::database("Failed to create product", e.to_string()))?;
+
+    // Return 201 Created with the product and success message
+    Ok((
+        StatusCode::CREATED,
+        Json(CreatedResponse {
+            data: product,
+            message: "Product created successfully".to_string(),
+        }),
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -96,5 +140,29 @@ mod tests {
         let json = serde_json::to_string(&response).unwrap();
         assert!(json.contains("\"data\""));
         assert!(json.contains("\"Test Product\""));
+    }
+
+    #[test]
+    fn test_created_response_serialization() {
+        let product = Product {
+            id: Uuid::nil(),
+            name: "New Product".to_string(),
+            description: Some("A newly created product".to_string()),
+            price: rust_decimal::Decimal::new(1999, 2),
+            stock: 50,
+            category: Some("Electronics".to_string()),
+            image_url: Some("https://example.com/image.jpg".to_string()),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+        let response = CreatedResponse {
+            data: product,
+            message: "Product created successfully".to_string(),
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("\"data\""));
+        assert!(json.contains("\"message\""));
+        assert!(json.contains("\"Product created successfully\""));
+        assert!(json.contains("\"New Product\""));
     }
 }
