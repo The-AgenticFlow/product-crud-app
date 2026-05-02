@@ -10,9 +10,9 @@ use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::db::{get_product_by_id, list_products, ProductRepositoryError};
+use crate::db::{get_product_by_id, list_products, update_product, ProductRepositoryError};
 use crate::error::AppError;
-use crate::models::{ListProductsQuery, PaginatedResponse, Product};
+use crate::models::{ListProductsQuery, PaginatedResponse, Product, UpdateProduct, UpdateProductRequest};
 
 /// Single item response wrapper
 #[derive(Debug, Serialize)]
@@ -76,6 +76,44 @@ pub async fn get_product_handler(
     let product = product.ok_or_else(|| AppError::not_found("Product", id.to_string()))?;
 
     // Return the product wrapped in {"data": {...}}
+    Ok(Json(DataResponse { data: product }))
+}
+
+/// Update an existing product
+///
+/// # Arguments
+/// * `Path(id_str)` - Path parameter containing the product ID (as string)
+/// * `Json(request)` - JSON body with update request
+/// * `Extension(pool)` - Database connection pool
+///
+/// # Returns
+/// A JSON response with the updated product wrapped in {"data": {...}} or an error
+pub async fn update_product_handler(
+    Path(id_str): Path<String>,
+    Json(request): Json<UpdateProductRequest>,
+    Extension(pool): Extension<PgPool>,
+) -> Result<Json<DataResponse<Product>>, AppError> {
+    // Parse the UUID from the path parameter
+    let id = Uuid::parse_str(&id_str)?;
+
+    // Validate the request
+    request.validate().map_err(|errors| AppError::validation(errors))?;
+
+    // Convert request to UpdateProduct
+    let update: UpdateProduct = request.into();
+
+    // Update the product in the database
+    let product = update_product(&pool, id, update).await.map_err(|e| match e {
+        ProductRepositoryError::NotFound => AppError::not_found("Product", id.to_string()),
+        ProductRepositoryError::DatabaseError(msg) => {
+            AppError::database("Failed to update product", msg)
+        }
+        ProductRepositoryError::ValidationError(msg) => {
+            AppError::validation_error("update", msg)
+        }
+    })?;
+
+    // Return the updated product wrapped in {"data": {...}}
     Ok(Json(DataResponse { data: product }))
 }
 
