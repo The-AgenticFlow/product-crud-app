@@ -2,6 +2,7 @@
 //!
 //! A RESTful API built with Axum framework
 
+mod config;
 mod db;
 mod handlers;
 mod middleware;
