@@ -23,7 +23,8 @@ export default function ConfirmDialog({
   variant = 'default',
   onConfirm,
   onCancel,
-  onClose,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onClose: _onClose, // Used by hook but not needed in component
 }: ConfirmDialogProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
