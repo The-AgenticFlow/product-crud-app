@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 /// Product entity representing a product in the database
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[allow(dead_code)]
 pub struct Product {
     pub id: Uuid,
     pub name: String,
@@ -22,6 +23,7 @@ pub struct Product {
 
 /// Data for creating a new product
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct CreateProduct {
     pub name: String,
     pub description: Option<String>,
@@ -33,6 +35,7 @@ pub struct CreateProduct {
 
 /// Data for updating an existing product
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct UpdateProduct {
     pub name: Option<String>,
     pub description: Option<String>,

@@ -13,7 +13,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
-sqlx = { version = "0.7", features = ["postgres", "runtime-tokio", "tls-rustls", "migrate", "chrono", "uuid"], optional = true }
+sqlx = { version = "0.7", features = ["postgres", "runtime-tokio", "tls-rustls", "migrate", "chrono", "uuid", "rust_decimal"], optional = true }
 rust_decimal = { version = "1", features = ["serde"] }
 
 [features]
